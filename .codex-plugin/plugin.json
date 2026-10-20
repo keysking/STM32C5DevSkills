@@ -1,0 +1,30 @@
+{
+  "name": "stm32c5-dev-skills",
+  "version": "0.1.0",
+  "description": "通过 cube、CubeMX2 和原生工具完成 STM32C5 环境、工程、配置、固件、构建、烧录与调试。",
+  "author": {
+    "name": "STM32C5DevSkills contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "stm32c5",
+    "cubemx2",
+    "cube",
+    "hal2",
+    "freertos",
+    "embedded"
+  ],
+  "skills": "./skills/",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "STM32C5DevSkills",
+    "shortDescription": "面向 STM32C5 的七项开发技能与具体任务实例",
+    "longDescription": "使用 cube、CubeMX2、HAL2/LL 和原生工具完成 C5 开发。覆盖裸机与 FreeRTOS，提供三平台环境、外设参数、代码与故障处理指导。",
+    "developerName": "STM32C5DevSkills contributors",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ]
+  }
+}

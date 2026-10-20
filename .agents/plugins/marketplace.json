@@ -1,0 +1,20 @@
+{
+  "name": "stm32c5-dev-skills",
+  "interface": {
+    "displayName": "STM32C5DevSkills"
+  },
+  "plugins": [
+    {
+      "name": "stm32c5-dev-skills",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

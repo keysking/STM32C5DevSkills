@@ -1,0 +1,6 @@
+interface:
+  display_name: "STM32C5 环境"
+  short_description: "定位 cube、CubeMX2、C5 依赖和编译工具并修复三平台环境"
+  default_prompt: "使用 $stm32c5-env 完成当前 STM32C5 环境任务，确认型号和版本，按步骤执行并检查结果。"
+policy:
+  allow_implicit_invocation: true

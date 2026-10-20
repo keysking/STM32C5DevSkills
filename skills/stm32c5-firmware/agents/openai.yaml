@@ -1,0 +1,6 @@
+interface:
+  display_name: "STM32C5 固件"
+  short_description: "使用 C5 HAL2/LL 开发裸机和 FreeRTOS 应用并移植驱动"
+  default_prompt: "使用 $stm32c5-firmware 完成当前 STM32C5 固件任务，确认型号和版本，按步骤执行并检查结果。"
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,18 @@
+---
+name: stm32c5-debug
+description: 调试 STM32C5 启动失败、HardFault、中断/DMA/外设异常和 FreeRTOS 卡死。使用 ST-Link GDB server、GDB、寄存器、内存及调用栈定位问题，区分固件证据、连接故障与板级问题。
+license: MIT
+---
+
+# STM32C5 调试
+
+1. 确认完整芯片型号，取得与目标固件对应的带符号 ELF、源码和构建配置，明确允许的连接、暂停、复位及下载动作。型号或工程缺失时先询问并继续能做的只读检查，不直接套用 C532 的引脚和参数。
+2. 按[GDB 会话](references/gdb.md)启动本次调试服务并连接。需要保留故障现场时先读 PC/LR/SP、异常状态和调用栈，再考虑复位。
+3. 按故障选择资料：
+   - 启动、HSE、HardFault：[启动和异常](references/startup-faults.md)。
+   - 中断、DMA、外设数据异常：[外设诊断](references/peripherals.md)。
+   - 任务不运行、卡死、栈或堆异常：[FreeRTOS 诊断](references/freertos.md)。
+4. 先列出观察到的事实，再建立一个可检查的假设；每次变更后重现原触发条件，不用大范围改配置碰运气。
+5. 修复涉及配置时同步 `.ioc2`，涉及代码时构建新 ELF，并根据授权重新下载验证。
+
+完成时给出根因证据、改动与验证结果。没有目标硬件时，可以检查向量、反汇编、链接和源码，但不能声称异常已在板端消失。
