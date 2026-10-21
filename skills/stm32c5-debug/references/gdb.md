@@ -1,6 +1,6 @@
 # ST-Link GDB 会话
 
-使用与设备当前固件匹配的带符号 ELF。先检查[工具环境](../../stm32c5-env/references/tools.md)，再枚举探针：
+按保留现场的 attach、需要复位的调试或静态 ELF 分析选择操作，不能从头执行全部命令。序列号、端口和 ELF 路径均取实际对象，61234 仅为端口写法。使用与设备当前固件匹配的带符号 ELF。先检查[工具环境](../../stm32c5-env/references/tools.md)，再枚举探针：
 
 ```text
 cube stlink-gdbserver --help
@@ -8,7 +8,7 @@ cube stlink-gdbserver -q
 cube arm-none-eabi-gdb --version
 ```
 
-在终端 A 设置实际序列号与未占用端口：
+仅在需要连接硬件且没有可复用的本次 server 时，在终端 A 设置实际序列号与未占用端口：
 
 ```powershell
 $sn = Read-Host '目标 ST-Link 序列号'
@@ -40,7 +40,7 @@ x/8i $pc
 
 ## 从复位调试应用
 
-得到本次复位/下载授权、已保存现场后，按 monitor 帮助执行复位并暂停，再：
+需要从复位开始且已保存现场时，按 monitor 帮助复位并暂停。下面分别为下载、设断点及继续运行，按需求选择；无需更新目标固件时跳过 load：
 
 ```gdb
 load

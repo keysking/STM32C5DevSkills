@@ -1,6 +1,6 @@
 interface:
   display_name: "STM32C5 调试"
   short_description: "使用 GDB 与板端证据诊断 C5 启动、异常、DMA 和任务问题"
-  default_prompt: "使用 $stm32c5-debug 完成当前 STM32C5 调试任务，确认型号和版本，按步骤执行并检查结果。"
+  default_prompt: "使用 $stm32c5-debug 完成当前 STM32C5 调试任务，确认型号和版本，按实际需求选择操作并检查结果。"
 policy:
   allow_implicit_invocation: true

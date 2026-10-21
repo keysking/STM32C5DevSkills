@@ -1,6 +1,6 @@
 # 连接与烧录恢复
 
-按从小到大的影响排查：
+仅在连接或烧录异常时按证据排查，不把恢复动作加入正常下载路径。每步检查结果，解决后停止升级动作：
 
 1. 探针是否枚举；USB 数据线、驱动/udev、访问权限是否正确。
 2. 目标供电、GND、VTref、SWDIO、SWCLK 和 NRST 是否连接；不要把探针电压参考当成供电能力。
@@ -8,7 +8,7 @@
 4. 降低 SWD 频率，例如 `freq=1000` 或更低的工具支持值，再普通连接。
 5. 固件进入低功耗、修改调试引脚或快速复位时，在确认 NRST 连接后使用 under-reset。
 
-示例变量 `$sn` 来自[枚举步骤](program.md)：
+仅在上述 under-reset 条件成立时使用以下连接形式。频率为语法示意值，参数及支持范围查 `cube programmer --help`；变量 `$sn` 来自[枚举步骤](program.md)：
 
 ```powershell
 cube programmer -c port=SWD "sn=$sn" freq=1000 mode=UR reset=HWrst

@@ -1,11 +1,14 @@
 # DMA 与 NVIC：从配置到运行
 
-先启用外设自己的 DMA/IRQ 父项，再查询该外设资源的动态参数；不要先假定存在一个通用、固定的 DMA 配置资源。
+先确定本次是查询、诊断还是新配置 DMA/IRQ。查询和诊断先读现状，不为使参数出现而修改工程。只有需求确需新增 DMA/IRQ 时启用外设自己的父项，再查询动态参数；不假定存在固定通用资源。各检查项用于当前传输，不要求给所有外设启用 DMA。
 
 ```powershell
 cube mx dma get-allocations -p "$p" -s "$s"
 cube mx nvic list-interrupts -p "$p" -s "$s" --used --full
+# USART1 仅表示被检查的资源，替换为实际外设
 cube mx sw-config list-parameters -p "$p" -s "$s" -r USART1
+cube mx dma --help
+cube mx nvic --help
 ```
 
 `$p`、`$s` 来自[操作基础](operations.md)。`dma bind-resource` 的用途与参数以叶子帮助为准，不能把为 MemToMem 准备的命令套用到所有外设请求。

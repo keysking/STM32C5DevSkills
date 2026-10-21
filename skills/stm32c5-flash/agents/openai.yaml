@@ -1,6 +1,6 @@
 interface:
   display_name: "STM32C5 烧录"
   short_description: "识别 C5 目标与 ST-Link，下载固件、校验并确认复位启动"
-  default_prompt: "使用 $stm32c5-flash 完成当前 STM32C5 烧录任务，确认型号和版本，按步骤执行并检查结果。"
+  default_prompt: "使用 $stm32c5-flash 完成当前 STM32C5 烧录任务，确认型号和版本，按实际需求选择操作并检查结果。"
 policy:
   allow_implicit_invocation: true

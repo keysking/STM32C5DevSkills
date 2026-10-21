@@ -2,7 +2,7 @@
 
 面向 **STM32C5** 的七技能包，通过 `cube`、CubeMX2 和原生工具完成环境准备、工程创建、外设配置、固件开发、构建、烧录与调试。
 
-内容中文为主，采用“简短入口 + 按任务读取的具体实例”。面向 Windows、Linux、macOS，覆盖裸机与 FreeRTOS；新建默认 CubeMX2、HAL2、CMake、Ninja、GCC。适合需要明确操作顺序、参数和检查点的编码助手。
+内容中文为主，采用“简短入口 + 按场景选择的命令与 API 参考”。面向 Windows、Linux、macOS，覆盖裸机与 FreeRTOS；新建默认 CubeMX2、HAL2、CMake、Ninja、GCC。适合需要明确操作顺序、参数和检查点的编码助手。
 
 本包整体安装；包内参考资料可相互引用，不依赖其他 STM32 技能包。它提供指令和资料，不包含工具二进制、SDK、运行包装脚本或开发板固件。
 
@@ -94,15 +94,23 @@ codex plugin list
 
 ## 三条工作流
 
-1. **CubeMX2 新建与维护**：`env → project → configure → firmware → build → flash/debug`。从[完整串口起步实例](skills/stm32c5-project/references/create.md)开始。
+1. **CubeMX2 新建与维护**：按任务选择环境、工程、配置、固件、构建以及所需的烧录/调试能力；新建方法见[创建与导出](skills/stm32c5-project/references/create.md)。创建空工程不自动附带串口、LED 或 RTOS。
 2. **官方 SDK / Example Library / Pack 工程**：识别版本和目录，先构建原例程，再调整板级配置与应用；见[例程入口](skills/stm32c5-project/references/existing-and-examples.md)。
 3. **无生成器或已有手写工程**：保留现有构建与初始化，按 C5 HAL2/LL 接口维护；不要求强制转换成 `.ioc2`。
 
-常用配置实例覆盖 GPIO/EXTI、时钟、UART、I2C、SPI、TIM/PWM、ADC、中断/DMA 和 FreeRTOS。选择当前任务对应参考，不必把全部资料加载进上下文。
+按场景的配置参考覆盖 GPIO/EXTI、时钟、UART、I2C、SPI、TIM/PWM、ADC、中断/DMA 和 FreeRTOS。只读取当前任务相关章节，不必把全部资料加载进上下文。
+
+## 如何使用命令参考
+
+- 每节说明适用条件和调用形式；整篇文档不是待逐条执行的脚本。GPIO 输出、EXTI、LL 切换，以及轮询、IT、DMA 等分别按需求选择。
+- 文中的型号、引脚、实例、频率、容量、路径及名称用于说明语法。实际值来自用户需求、板卡、现有工程和工具查询，不能原样复制为默认配置。
+- 先查询当前状态及可用参数。资料未列出所有功能时，用所列帮助、参数查询和项目头文件继续确定用法，不猜测命令。
+- 查询任务取得结果即结束；修改任务只改变需求项及必要依赖。修改后回读、保存重载，需同步固件时再生成、比较并构建。
+- API 片段说明接口与生命周期，应用自行提供真实数据、缓冲区、超时及错误处理；不要求加入演示任务或固定闪灯逻辑。
 
 ## 适用条件
 
-- 命令和参数实例基于 CubeMX2 CLI 1.1.2、C5 DFP/HAL2 2.1.0；代表型号为 `STM32C532CCT6`。FreeRTOS 示例使用 Pack 2.2.0。实际项目约束优先，升级后重新查询参数和头文件。
+- 命令路径与参数参考基于 CubeMX2 CLI 1.1.2、C5 DFP/HAL2 2.1.0；代表型号为 `STM32C532CCT6`。FreeRTOS 参数依据 Pack 2.2.0。实际项目约束优先，升级后重新查询参数和头文件。
 - C5 使用 CubeMX2；传统 CubeMX 的 `.ioc` 与 Java 脚本不用于此路线。`.ioc2` 不是纯 JSON。
 - 重新生成默认导出到新的空目录，再比较和合并；不使用 `--force` 覆盖业务代码。
 - 引脚、时钟、内存、DMA 和 RTOS 配置必须与实际型号及板卡相符；示例不能替代原理图和数据手册。

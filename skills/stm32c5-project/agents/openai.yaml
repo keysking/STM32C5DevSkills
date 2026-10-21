@@ -1,6 +1,6 @@
 interface:
   display_name: "STM32C5 工程"
   short_description: "创建或接手 C5 工程，管理 CubeMX2 配置、依赖和重新生成"
-  default_prompt: "使用 $stm32c5-project 完成当前 STM32C5 工程任务，确认型号和版本，按步骤执行并检查结果。"
+  default_prompt: "使用 $stm32c5-project 完成当前 STM32C5 工程任务，确认型号和版本，按实际需求选择操作并检查结果。"
 policy:
   allow_implicit_invocation: true

@@ -1,6 +1,6 @@
 interface:
   display_name: "STM32C5 配置"
   short_description: "配置 C5 引脚、时钟、外设、DMA、中断与 FreeRTOS 参数"
-  default_prompt: "使用 $stm32c5-configure 完成当前 STM32C5 配置任务，确认型号和版本，按步骤执行并检查结果。"
+  default_prompt: "使用 $stm32c5-configure 完成当前 STM32C5 配置任务，确认型号和版本，按实际需求选择操作并检查结果。"
 policy:
   allow_implicit_invocation: true

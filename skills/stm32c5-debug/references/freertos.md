@@ -1,5 +1,7 @@
 # FreeRTOS 运行异常
 
+按任务不运行、阻塞或资源异常选择相关检查；不为排查一个任务重设整个内核。诊断 API 的签名与配置条件查工程实际头文件，不能假定所有观察接口已启用。
+
 ## 任务完全不运行
 
 1. 确认 main 实际调用对象创建函数和调度器启动，不只生成了 `mx_freertos_app.c`。
@@ -18,7 +20,7 @@
 
 ## 栈、堆和数据破坏
 
-启用项目支持的 stack overflow/malloc failed hook，并实现相应函数。观察 `uxTaskGetStackHighWaterMark` 等接口前确认 include 配置宏；单位仍为 StackType_t。
+先检查已有 hook 和内存观测。证据不足且需要增加诊断时，启用项目支持的 stack overflow/malloc failed hook 并实现相应函数；这属于明确的诊断改动，不是只读查询。观察 `uxTaskGetStackHighWaterMark` 等接口前确认 include 配置宏；单位仍为 StackType_t。
 
 比较最小剩余堆、失败分配和最大调用深度。printf、浮点格式化、协议解析、递归和大型局部数组可能扩大栈需求。增加栈可以用于验证假设，但最终要解释超出预期的原因。
 
@@ -32,6 +34,6 @@ DMA 缓冲不应指向已返回函数的局部数组；队列传指针时明确�
 
 ## GDB 与任务视图
 
-基础 GDB 先读当前线程栈、PC/LR、任务/队列计数和 `app_last_value` 等观察点。任务感知插件或 `cube rtos-proxy` 需要确认当前版本、配置与内核兼容性，按本机帮助接入；没有解析成功时不要展示虚构的任务列表。
+基础 GDB 先读当前线程栈、PC/LR、任务/队列计数和应用已有的观察点。任务感知插件或 `cube rtos-proxy` 需要确认当前版本、配置与内核兼容性，按本机帮助接入；没有解析成功时不要展示虚构的任务列表。
 
 修复后执行与问题匹配的压力、阻塞、溢出和恢复场景，明确测试时长与输入。配置入口见[RTOS 配置](../../stm32c5-configure/references/freertos.md)，应用与 API 约束见[RTOS 固件](../../stm32c5-firmware/references/freertos.md)。

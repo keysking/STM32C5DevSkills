@@ -1,178 +1,149 @@
-# HAL2 应用片段
+# HAL2 外设 API 用法
 
-以下针对 C5 HAL2 2.1.0，放在应用维护的源文件中并加入构建目标。先完成外设配置与 `mx_system_init()`，包含实际生成头文件。例中 getter 名需与生成的 `.h` 对照；不要重复调用 init 代替取 handle。
+本文按传输、启动和事件处理分别列出 API，用于选择当前任务需要的操作，不是要求全部加入工程的演示应用。依据 C5 HAL2 2.1.0；实例、数据、长度、超时和通道按真实需求确定。USART1 等名称仅说明如何找到生成 handle，不要求新增对应外设。
 
-## USART1 轮询发送
+## 取得声明和已初始化的 handle
 
-```c
-#include "mx_usart1.h"
+先检查工程实际 HAL 头文件、配置宏及生成的 `mx_*.h`。下表的 getter 名须与当前生成文件核对；不要重复 init 代替取 handle。
 
-hal_status_t app_uart_hello(void)
-{
-    static const char text[] = "C5 ready\r\n";
-    return HAL_UART_Transmit(mx_usart1_uart_gethandle(),
-                             text, sizeof text - 1U, 100U);
-}
+| 资源写法 | 生成头文件 / getter 的一种实际形式 |
+| --- | --- |
+| USART1 | `mx_usart1.h` / `mx_usart1_uart_gethandle()` |
+| I2C1 | `mx_i2c1.h` / `mx_i2c1_i2c_gethandle()` |
+| SPI1 | `mx_spi1.h` / `mx_spi1_gethandle()` |
+| TIM1 | `mx_tim1.h` / `mx_tim1_gethandle()` |
+| ADC1 | `mx_adc1.h` / `mx_adc1_gethandle()` |
+| GPIO EXTI0 | `mx_gpio_default.h` / `mx_gpio_default_exti0_gethandle()` |
+
+调用前确认初始化成功，例如 `mx_system_init()` 返回成功。下文 C 片段位于应用函数内，参数及 handle 由应用准备；检查每个 `hal_status_t`，失败后按状态处理，不继续假定成功。
+
+本文不覆盖所有接口。查询实际头文件及源文件中的函数声明、注释、条件宏和状态要求；Pack 定位见[HAL2/LL 查询方法](hal2-ll.md)。例如：
+
+```text
+rg -n "HAL_UART_Transmit|HAL_UART_Receive_IT|HAL_UART_ReceiveToIdle_DMA" .
+rg -n "HAL_ADC_Start|HAL_ADC_Calibrate|HAL_ADC_REG_StartConv" .
 ```
 
-在系统初始化成功后调用，检查 `HAL_OK`；失败时记录状态并检查串口时钟、初始化和 tick。超时单位为毫秒。
+## UART 阻塞发送或接收
 
-## UART 固定长度接收中断
+仅在需求选择轮询阻塞方式时使用，不需要额外启用 DMA/回调。包含实际生成头文件，取得 `hal_uart_handle_t *uart`；`data` 指向发送数据，`buffer` 为可写接收空间，`size_byte` 与 `timeout_ms` 由协议确定。
 
-此片段只使用一字节 IT 接收；不要同时在同一 handle 上启动 DMA。启用 UART IRQ 和注册回调开关，按[UART 配置](../../stm32c5-configure/references/uart.md)生成。
+| 操作 | 调用形式 |
+| --- | --- |
+| 发送 | `HAL_UART_Transmit(uart, data, size_byte, timeout_ms)` |
+| 接收 | `HAL_UART_Receive(uart, buffer, size_byte, timeout_ms)` |
+
+长度单位为字节，阻塞超时单位为毫秒。不要插入固定的“C5 ready”输出或固定延时。失败时记录状态，查时钟、初始化、tick 和对端；ISR 中不使用阻塞等待。
+
+## UART 中断接收
+
+仅在选择 IT 接收时使用；同一接收 handle 不同时启动 DMA。先确认 UART IRQ、handler 和相应回调路径，见[UART 配置](../../stm32c5-configure/references/uart.md)。
+
+固定长度接收的形式为 `HAL_UART_Receive_IT(uart, buffer, size_byte)`。缓冲区必须持续有效直至传输结束，不能传入马上离开作用域的栈数组。长度来自协议，不统一设为一字节。
+
+采用注册回调且 `USE_HAL_UART_REGISTER_CALLBACKS=1` 时，在接收启动前调用 `HAL_UART_RegisterRxCpltCallback(uart, rx_done)` 并检查结果。回调签名：
 
 ```c
-#include "mx_usart1.h"
-
-static uint8_t rx_byte;
-static volatile uint32_t rx_count;
-static volatile hal_status_t rx_restart_status;
-
-static void app_rx_done(hal_uart_handle_t *uart, uint32_t size_byte,
-                        hal_uart_rx_event_types_t event)
+static void rx_done(hal_uart_handle_t *uart, uint32_t size_byte,
+                    hal_uart_rx_event_types_t event)
 {
+    /* 根据 uart、事件类型和实际长度，记录完成或提交已接收数据。
+     * 数据已移交且需要下一次传输时，按接收状态安排重新启动。
+     * 不在这里无条件重启其他模式，也不执行阻塞业务。 */
+    (void)uart;
+    (void)size_byte;
     (void)event;
-    if (size_byte == 1U) {
-        ++rx_count; /* 最小观察点；业务数据应送入环形缓冲或队列。 */
-    }
-    rx_restart_status = HAL_UART_Receive_IT(uart, &rx_byte, 1U);
-}
-
-hal_status_t app_uart_rx_start(void)
-{
-    hal_uart_handle_t *uart = mx_usart1_uart_gethandle();
-    hal_status_t status = HAL_UART_RegisterRxCpltCallback(uart, app_rx_done);
-    if (status != HAL_OK) {
-        return status;
-    }
-    return HAL_UART_Receive_IT(uart, &rx_byte, 1U);
 }
 ```
 
-应用周期检查 `rx_restart_status` 和错误回调；overrun 等错误后按实际 HAL 状态恢复接收。`volatile` 仅用于观察，不是多生产者队列或原子同步的替代。
+这是回调接口形式，不是已实现的数据处理器。应用须填入其缓冲区所有权及错误恢复逻辑。沿用弱回调时查当前源码签名，不为使用此形式强行切换注册机制。每次重新接收都检查返回值；overrun 等错误按实际 HAL 状态恢复。
 
-DMA/IDLE 路线使用长期有效的静态缓冲区：
+## UART DMA 与 IDLE 接收
+
+仅当需求选择 DMA 时使用。确认外设与 DMA handle 绑定、宽度、模式及必要 IRQ；IDLE 通知还需要 UART IRQ。
+
+假定 `uart` 是既有 handle，`buffer` 是长期有效的缓冲区，`capacity_bytes` 为真实容量：
 
 ```c
-static uint8_t rx_dma[128];
-/* 在回调、DMA 绑定和两个 IRQ 就绪后调用，并检查返回值。 */
-hal_status_t status = HAL_UART_ReceiveToIdle_DMA(
-    mx_usart1_uart_gethandle(), rx_dma, sizeof rx_dma);
+hal_status_t status = HAL_UART_ReceiveToIdle_DMA(uart, buffer, capacity_bytes);
 ```
 
-DMA 模式决定回调数据表示和重启策略。普通模式在传输完成后消费并重新启动；循环模式根据事件位置计算增量，防止覆盖未处理数据。不要无条件在每个半满/IDLE 事件里重新启动 DMA。业务设计需明确生产者、消费者和溢出处理。
+检查 `status`。正常模式按传输结束状态消费并重启；循环模式根据事件位置计算增量，不在每次半满/IDLE 事件无条件重启。固定长度 DMA 或 TX DMA 使用对应实际头文件中的接口，不因本页列出 IDLE 就改变协议。
 
-## I2C 主机发送
+## I2C 主机传输
+
+仅在 MCU 为主机且协议要求对应操作时使用。`hal_i2c_handle_t *i2c` 来自现有初始化；数据区、长度和超时由器件协议给出。
+
+7 位地址的发送形式：
 
 ```c
-#include "mx_i2c1.h"
-
-hal_status_t app_i2c_write(uint8_t address7,
-                            const uint8_t *data, uint32_t size)
-{
-    if (address7 > 0x7FU || data == NULL || size == 0U) {
-        return HAL_ERROR;
-    }
-    return HAL_I2C_MASTER_Transmit(mx_i2c1_i2c_gethandle(),
-                                    (uint32_t)address7 << 1U,
-                                    data, size, 100U);
-}
+/* address7 是未移位的 7 位地址，范围 0..0x7F。 */
+hal_status_t status = HAL_I2C_MASTER_Transmit(
+    i2c, (uint32_t)address7 << 1U, data, size_byte, timeout_ms);
 ```
 
-调用者传 7 位地址；器件寄存器协议由调用者组织。要求 repeated-start 的寄存器读取，应选实际 HAL2 MemRead/SEQ 接口并核对停止条件，不能盲目拆成两次独立传输。
+先校验参数并检查状态。若上层已传入 HAL 所需移位地址，不再左移；10 位寻址按实际接口约定处理。`own_address1` 不是主机目标地址。
 
-## SPI 全双工
+接收、寄存器访问、repeated-start 或序列传输分别检索当前 HAL2 MASTER/内存/SEQ 接口及停止条件，不能盲目把寄存器读取拆成两个带 STOP 的传输。中断/DMA 路径额外确认事件及错误 IRQ、缓冲区寿命，不为阻塞发送添加它们。
+
+## SPI 全双工传输
+
+仅适用于实际选择全双工的事务。`hal_spi_handle_t *spi` 来自初始化；`tx`、`rx` 的存储容量须匹配帧宽与包数：
 
 ```c
-#include "mx_spi1.h"
-
-hal_status_t app_spi_exchange(const uint8_t *tx, uint8_t *rx, uint32_t count)
-{
-    return HAL_SPI_TransmitReceive(mx_spi1_gethandle(), tx, rx, count, 100U);
-}
+hal_status_t status = HAL_SPI_TransmitReceive(spi, tx, rx, count_packet, timeout_ms);
 ```
 
-这里配置为 8 位帧，`count` 才与字节数相同。调用前后用板级 CS 函数选择/释放器件，包括错误路径；CS 引脚由实际板卡决定。中断/DMA 发送时不得在启动函数返回后立即释放 CS，应在实际传输结束且驱动确认总线完成后释放。
+`count_packet` 是帧/包数，只有 8 位帧时才等于字节数。单向需求使用对应方向 API，不固定改成全双工。软件 CS 由板级操作选择/释放器件，错误路径也须处理；异步启动返回不表示传输已结束，不能立即释放 CS。硬件 NSS 按其时序验证。
 
-## PWM 启动
+## 启动 PWM 输出
+
+仅在初始化已配置为 PWM、应用需要开始输出时操作。下列说明 TIM1 CH1 的启动依赖；其他实例/通道替换为实际 handle 和宏。
 
 ```c
-#include "mx_tim1.h"
-
-hal_status_t app_pwm_start(void)
-{
-    hal_tim_handle_t *tim = mx_tim1_gethandle();
-    hal_status_t status = HAL_TIM_OC_StartChannel(tim, HAL_TIM_CHANNEL_1);
-    if (status != HAL_OK) {
-        return status;
-    }
+hal_tim_handle_t *tim = mx_tim1_gethandle();
+hal_status_t status = HAL_TIM_OC_StartChannel(tim, HAL_TIM_CHANNEL_1);
+if (status == HAL_OK) {
     status = HAL_TIM_Start(tim);
     if (status != HAL_OK) {
         (void)HAL_TIM_OC_StopChannel(tim, HAL_TIM_CHANNEL_1);
     }
-    return status;
 }
 ```
 
-比较单元和通道参数来自[配置实例](../../stm32c5-configure/references/tim-adc.md)。动态占空比使用 `HAL_TIM_OC_SetCompareUnitPulse` 并确认 preload/更新时机，不直接照搬 HAL1 宏。
+检查最终状态。已经运行的共用定时器须检查状态及其他通道，不重复初始化或随意停整个计数器。配置依据[定时器参考](../../stm32c5-configure/references/tim-adc.md)；改变占空比查 `HAL_TIM_OC_SetCompareUnitPulse` 与 preload/更新时机，不默认改频率。高级定时器还应检查输出使能和 break。
 
-## ADC 单次读取
+## ADC 启动、校准及规则组转换
 
-```c
-#include "mx_adc1.h"
+先区分 ADC 外设启动与转换启动。HAL2 2.1.0 校准要求 ACTIVE 状态：初始化后先 `HAL_ADC_Start(adc)`，成功才 `HAL_ADC_Calibrate(adc)`。不沿用 HAL1 的校准顺序，不每次读取都重复启动/校准。
 
-hal_status_t app_adc_begin(void)
-{
-    hal_adc_handle_t *adc = mx_adc1_gethandle();
-    hal_status_t status = HAL_ADC_Start(adc);
-    if (status != HAL_OK) {
-        return status;
-    }
-    return HAL_ADC_Calibrate(adc);
-}
+按需求选择一种转换方式：
 
-hal_status_t app_adc_read(int32_t *sample)
-{
-    hal_adc_handle_t *adc = mx_adc1_gethandle();
-    if (sample == NULL) {
-        return HAL_ERROR;
-    }
-    hal_status_t status = HAL_ADC_REG_StartConv(adc);
-    if (status != HAL_OK) {
-        return status;
-    }
-    status = HAL_ADC_REG_PollForConv(adc, 100U);
-    if (status == HAL_OK) {
-        *sample = HAL_ADC_REG_ReadConversionData(adc);
-    }
-    hal_status_t stop = HAL_ADC_REG_StopConv(adc);
-    return status == HAL_OK ? stop : status;
-}
-```
+| 方式 | 启动调用 | 必要条件 |
+| --- | --- | --- |
+| 轮询 | `HAL_ADC_REG_StartConv(adc)` | 配置好触发及序列；之后 `HAL_ADC_REG_PollForConv(adc, timeout_ms)`，成功时 `HAL_ADC_REG_ReadConversionData(adc)`。 |
+| 中断 | `HAL_ADC_REG_StartConv_IT(adc)` | IRQ、handler 及相应完成/错误回调。 |
+| DMA | `HAL_ADC_REG_StartConv_DMA(adc, buffer, size_byte)` | DMA 绑定、方向、宽度、模式、IRQ 和长期有效缓冲区。 |
 
-初始化后调用一次 `app_adc_begin()`，成功才周期调用读取函数。HAL2 的校准要求 ADC 已处于 ACTIVE 状态，不能直接沿用 HAL1 的校准顺序。转换超时仍尝试停止转换；持续失败再检查时钟、触发和 handle 状态。
+轮询返回样本类型为 `int32_t`。单次读取结束或超时后按状态调用 `HAL_ADC_REG_StopConv`，同时保留原始错误；持续/外部触发模式按其生命周期停止，不直接套用单次流程。
 
-## EXTI 回调
+DMA 参数为 `uint8_t *` 和字节数；对于实际存在的 `uint16_t samples[32]`，指针转为 `(uint8_t *)samples`，长度用 `sizeof samples`，不是直接用 32。尺寸由真实采集需求确定。多通道消费顺序须与 rank 一致。
+
+## EXTI 事件回调
+
+仅当需要处理已配置 EXTI 的事件时注册。初始化成功后，按项目实际开关使用 `HAL_EXTI_RegisterTriggerCallback(exti, on_edge)` 并检查返回值；弱回调路线按头文件条件使用。
 
 ```c
-#include "mx_gpio_default.h"
-
-static volatile uint32_t button_edges;
-
-static void app_button_edge(hal_exti_handle_t *exti, hal_exti_trigger_t trigger)
+static void on_edge(hal_exti_handle_t *exti, hal_exti_trigger_t trigger)
 {
+    /* 按实际来源和边沿记录事件或通知任务，不在 ISR 内延时。 */
     (void)exti;
     (void)trigger;
-    ++button_edges;
-}
-
-hal_status_t app_button_start(void)
-{
-    return HAL_EXTI_RegisterTriggerCallback(
-        mx_gpio_default_exti0_gethandle(), app_button_edge);
 }
 ```
 
-GPIO/EXTI 初始化成功后注册；若头文件宏限制此 API，先在实际 HALCore 配置中开启对应注册选项并生成。业务层观察计数并消抖，ISR 不延时。
+片段只展示签名，应用补入其事件处理。输入可能是传感器、同步信号或按键，不默认增加按键计数与消抖；仅机械输入需要时才安排消抖。
 
-每段代码只证明接口用法。依实际外设完成构建、烧录和信号验证后，才能判断应用功能正确。
+## 验证所选操作
+
+在应用源文件中实现选定逻辑并加入当前构建目标。检查 API、宏、长度和生命周期；异步操作还要观察完成、错误、溢出及后续传输。构建、烧录及真实信号验证分别给出结果，不把片段可编译当成功能已验证。

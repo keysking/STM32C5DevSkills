@@ -15,7 +15,7 @@
 | 浮点 ABI 冲突 | 所有对象/库的 `mcpu/mfpu/mfloat-abi` 一致，含 RTOS port |
 | Flash/RAM 溢出 | 链接区域是否正确 → map 最大对象 → 堆栈/缓冲/库占用 |
 
-定位命令示例：
+按错误选择以下查询或重建操作，preset 与目录换成实际值；仅需读日志时不执行重建。构建选项查 `cube cmake --help` 中的 Build a Project 部分：
 
 ```text
 cube cmake --build --preset debug_GCC_STM32C532CCT6 --verbose

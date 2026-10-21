@@ -20,7 +20,7 @@
       "requires_local_executor": true,
       "interface": {
         "displayName": "STM32C5DevSkills",
-        "shortDescription": "面向 STM32C5 的七项开发技能与具体任务实例",
+        "shortDescription": "面向 STM32C5 的七项开发技能与场景操作参考",
         "longDescription": "使用 cube、CubeMX2、HAL2/LL 和原生工具完成 C5 开发。覆盖裸机与 FreeRTOS，提供三平台环境、外设参数、代码与故障处理指导。",
         "developerName": "STM32C5DevSkills contributors",
         "category": "Developer Tools",

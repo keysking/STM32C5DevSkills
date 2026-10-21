@@ -1,6 +1,6 @@
 # CMake / Ninja / GCC 构建与产物
 
-在包含 `CMakeLists.txt`、`CMakePresets.json` 的导出目录执行。`.ioc2` 所在目录不一定是构建根目录。
+本页分别说明工具选择、构建和产物检查；只检查现有 ELF 时无需重新配置或增加 map/BIN 输出。版本、preset、路径和目标名仅展示语法，取实际工程值。在包含 `CMakeLists.txt`、`CMakePresets.json` 的导出目录执行。`.ioc2` 所在目录不一定是构建根目录。
 
 ## 找到并配置工具
 
@@ -9,7 +9,7 @@ $bundles = cube --json bundle list | ConvertFrom-Json
 $bundles | Where-Object { $_.details.name -in @('gnu-tools-for-stm32', 'ninja') } | Select-Object path, details
 ```
 
-按项目要求选择输出中的版本。以下为已安装此版本的示例，匹配不到就返回[环境恢复](../../stm32c5-env/references/tools.md)，不继续使用空路径：
+按项目要求选择输出中的版本。下方版本仅演示筛选语法，先替换为项目要求的版本；匹配不到时返回[环境恢复](../../stm32c5-env/references/tools.md)，不继续使用空路径：
 
 ```powershell
 $gcc = @($bundles | Where-Object { $_.details.name -eq 'gnu-tools-for-stm32' -and $_.details.version -eq '14.3.1+st.2' })
@@ -38,8 +38,9 @@ arm-none-eabi-gcc --version
 
 ## 配置与构建
 
+先用 `cube cmake --list-presets` 查询名称，选项以 `cube cmake --help` 为准。仅当实际存在并选择下列 preset 时：
+
 ```text
-cube cmake --list-presets
 cube cmake --preset debug_GCC_STM32C532CCT6
 cube cmake --build --preset debug_GCC_STM32C532CCT6 --parallel 4
 ```
@@ -60,7 +61,7 @@ $elf = (Resolve-Path -LiteralPath './build/debug_GCC_STM32C532CCT6/C5App.elf').P
 & (Join-Path $gccBin 'arm-none-eabi-readelf.exe') -h -l "$elf"
 ```
 
-`C5App.elf` 是新建示例的名字；用上一步实际列出的文件替换。Bash 对应 `find build -name '*.elf'` 及 `arm-none-eabi-size "$elf"`。
+`C5App.elf` 是语法示意名称；用上一步实际列出的文件替换。Bash 对应 `find build -name '*.elf'` 及 `arm-none-eabi-size "$elf"`。
 
 检查 ELF 为 ARM、段地址与实际 Flash/RAM/bootloader 分区一致。`text+data`、`data+bss` 只是常用估算，还需计入向量、对齐、堆、栈、加载地址及特殊内存区域。
 
@@ -80,4 +81,4 @@ target_link_options(C5App PRIVATE
 & (Join-Path $gccBin 'arm-none-eabi-objcopy.exe') -O binary "$elf" './C5App.bin'
 ```
 
-BIN 不含下载地址，交付时附工程的真实起始地址。优先烧录带地址的 ELF/HEX。完成构建后再按[烧录流程](../../stm32c5-flash/references/program.md)验证目标。
+BIN 不含下载地址，交付时附工程的真实起始地址。优先烧录带地址的 ELF/HEX。任务包含板端下载时，再按[烧录流程](../../stm32c5-flash/references/program.md)验证目标。

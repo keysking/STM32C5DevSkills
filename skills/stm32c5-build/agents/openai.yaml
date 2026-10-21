@@ -1,6 +1,6 @@
 interface:
   display_name: "STM32C5 构建"
   short_description: "构建 C5 固件，定位编译链接错误并检查 ELF 和内存占用"
-  default_prompt: "使用 $stm32c5-build 完成当前 STM32C5 构建任务，确认型号和版本，按步骤执行并检查结果。"
+  default_prompt: "使用 $stm32c5-build 完成当前 STM32C5 构建任务，确认型号和版本，按实际需求选择操作并检查结果。"
 policy:
   allow_implicit_invocation: true
